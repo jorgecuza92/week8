@@ -1,0 +1,18 @@
+Assignment - Blog App Using PostgreSQL Database
+In this assignment you are going to create a blog application. Here are the features you will implement:
+
+Ability to create a new post (title, body, date_created, date_updated, is_published)
+posts Schema
+
+post_id - SERIAL PRIMARY KEY
+
+title - varchar(200) 
+
+body - Text 
+
+date_created - timestamp default current_timestamp 
+
+date_updated - timestamp default current_timestamp 
+
+is_published - boolean default False 
+Ability to view all posts

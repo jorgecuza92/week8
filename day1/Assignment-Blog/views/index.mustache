@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog</title>
+</head>
+
+<body>
+  <h1>Welcome to my Blog!</h1>
+  <h2>  <a href="./create-post"><button>Create Post</button></a></h2>
+    {{#blogs2}}
+  
+     <li>{{title}}</li>    
+      <li>{{body}}</li>
+      <li>{{date_created}}</li>
+      <li>{{date_updated}}</li>
+      <li>{{is_published}}</li>
+  
+      <button>Delete Post</button>
+      <button>Update Post</button>
+    {{/blogs2}}
+    
+
+
+  </ul>
+
+</body>
+
+</html>

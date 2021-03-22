@@ -1,0 +1,354 @@
+Week 8 Day 1
+
+Next week is the backend project!  This one is our randomly-assigned team project. Azam will send out a list of project requirements along with the members of each team; start thinking about project ideas. Like last time they'll need to be approved by Azam before you get started.
+
+Two types of databases:  relational databases and document databases. We will be covering relational databases - they are the tried-and-true workhorses, and you will see them everywhere out in the field.  Once you're comfortable with the concept in general, you'll be able to quickly get comfortable with different versions of relational databases.
+
+Key concept of relational databases: STORAGE IN COLUMNS. Your overall document is a TABLE. Relational databases store data in rows and the individual data category in each row is labeled by what the column name is.
+
+Make sure your table name is plural: movies, addresses, etc.
+
+Say you have a table called Users.  What do you want to store within each user? First name, last name, email, maybe more...
+
+So a simple table could be:
+
+users
+first_name	last_name	email			hobby
+john		doe		jdoe@gmail.com		Fishing
+mary		doe		doemary@gmail.com	Basketball
+
+
+Now for each, we need a unique identifier. We could use email, but that could slow down search performance given how long emails can be. So what ends up happening is that we include a separate ID field.
+
+users
+
+user_id		first_name	last_name	email			hobby
+1		john		doe		jdoe@gmail.com		Fishing
+2		mary		doe		doemary@gmail.com	Basketball
+
+
+Different databases have different naming conventions. PostgreSQL uses snake case like Python, and uses lowercase names (we'll see why with the lowercase names a bit later). 
+
+Postgres will add the id number for you as long as you have a column for IDs.  It is also smart enough to know, if you delete a record, it's not going to re-assign that ID to a new entry.
+
+The unique identifier column is known as a PK or Primary Key. Each row should have a unique PK to identify that row.
+
+We will create databases in Postgres from the terminal - it is a different terminal from the zsh or Powershell that you've been using.
+
+To create a new database, double-click on any existing DB, and in the terminal, enter:
+
+CREATE DATABASE booksdb;   //or whatever DB name you want in place of booksDB
+
+Then enter  \connect booksdb;
+
+This will switch you to that database.
+
+You can get out of the postgres terminal into the main terminal by doing \q to quit.
+
+Open Postico and click New Favorite. The defaults are fine, and the database name should be booksdb.
+
+So we need to add a new table.
+
+The language for relational databases is SQL (Structured Query Language). So we have to learn the basics of SQL.
+
+Click on the SQL Query box at the left to open the interface. You could write the same SQL directly in the postgres terminal, but it's less forgiving.
+
+So what's the first thing we need? A table to store books.
+
+SQL command: CREATE TABLE books  (doesn't have to be capitals, but it's good practice to highlight SQL key words. In Postgres, table names/column names/etc should be lowercase).
+
+So what data do we want to store:
+
+book_id (PK)	name	ISBN	author	is_published
+
+name/ISBN/author will be strings
+is_published will be a boolean
+
+This structure we are planning out is known as the SCHEMA of the table - the column names and their data types. 
+
+The order you enter your columns into the data base doesn't really matter. 
+
+CREATE TABLE books (
+	book_id SERIAL PRIMARY KEY,    //serial is what tells SQL to assign an id automatically
+	name VARCHAR(100)  	     
+)
+
+//varchar is SQL for "string"; the number is how many characters. If the number exceeds what you put there, it will be cut off.  So what you could also do is TEXT, which has no limit. We also don't want this to be empty, so we can add the NOT NULL constraint.
+
+CREATE TABLE books (
+	book_id SERIAL PRIMARY KEY,    
+	name TEXT NOT NULL	     
+)
+
+Next we'll use ISBN, and for that we'll use VARCHAR. Because they have a specific limit - they are cut off at 13, and this frees up performance over using TEXT.
+
+CREATE TABLE books (
+	book_id SERIAL PRIMARY KEY,    
+	name TEXT NOT NULL
+	isbn VARCHAR(20) NOT NULL
+	author VARCHAR(50) NOT NULL
+	is_published BOOLEAN DEFAULT TRUE	     
+)
+
+For booleans, you can set a default value of FALSE or TRUE. It's more likely that a book we're adding to this DB has been published vs not, so we'll set it to true.
+
+Then hit Execute Statement and it should create your table.
+
+Comments in SQL work like multi-line JS. /*  stuff */  You can also use two hypens before a line,
+--like this.
+
+
+Now, how do we insert a book into the table?
+
+INSERT INTO books(name, isbn, author)  //if we leave off is_published, it'll go to the default
+
+INSERT INTO books(name, isbn, author) VALUES('Atomic Habits', '314522654', 'James Clear')
+
+Why are we not providing books_id? SQL will automatically provide it.  
+
+The values will insert in the same order that we specified the column names after books(). 
+
+Make sure the Content tab is selected if you're not getting the right view.  The Structure view will show you the schema.
+
+How do you select everything from a table?
+
+SELECT * FROM books;
+
+This returns you a SET. What is a set? It's similar to an array, but not quite. They only allow non-repeated, unique values within them. They are stores without any particular order.
+
+BUT the command above is not ideal for performance. It's better to select what columns you want to see. SQL creates a "build plan" behind the scenes, so on your second time requesting the same columns, it's faster. That doesn't happen with the SELECT * version.
+
+SELECT book_id, name, isbn, author, is_published FROM books
+
+So these are known as CRUD operations in the database world (Create, Read, Update, Delete).  (Read is Select)
+
+So how do we delete something?
+
+DELETE FROM books;    //this is dangerous...it will remove all entries from the books table!!
+
+To delete a single book:
+
+DELETE FROM books
+WHERE book_id = 1
+
+Let's insert a book that is not published, to show how we can run a differential selection.
+
+INSERT INTO books(name, isbn, author, is_published) VALUES('Intro to JS', '6546831', 'John Doe', FALSE)
+
+Then...
+SELECT book_id, name FROM books
+WHERE is_published = TRUE
+
+This shows us only the books that have been published.
+
+How do we add a column after we've initially set up our table?
+
+ALTER TABLE books 
+ADD COLUMN rating INTEGER
+
+
+Because we already have entries that don't have this column, we can't set the default to NOT NULL. The default will be NULL because the pre-exising entries are already in there as NULL.
+
+This is the same command you'd use to alter data types for or names of existing columns.
+
+
+UPDATE A BOOK:
+
+UPDATE books
+SET author = 'John Smith'
+WHERE book_id = 3
+
+Without the WHERE clause, it would change ALL the authors!  You *always* need the where clause when updating or deleting.  There is no way to undo this unless you've previously set periodic backups on another machine and have an older copy you can revert back to.
+
+
+
+So how do we do all of this create/read/update/delete in Node?
+
+
+***NODE INTEGRATION***
+
+Let's start with a base Node app using Mustache and Express.  Then we need to install a package called pg-promise (pg for Postgres)
+
+In terminal:
+npm install pg-promise
+
+In app.js:
+const pgp = require('pg-promise')()
+
+
+Now we need to connect to the database. The CONNECTION STRING points our Node app to the database we want to to connect to. So we need to find the port our database is running on - if you go into Server Settings in Postgres, you can see it's on port 5432.
+
+const connectionString = 'postgres://localhost:5432/booksdb'
+
+Now we can use the connection string to create a Postgres/pg-promise object. This object contains many functions to work with the Postgres database.  
+
+const db = pgp(connectionString)
+
+If we try to print this out, we can see all the functions.
+
+
+So let's start with trying to get all the books.
+
+db.any()  //this will always return an array, even if there's only one item in the database
+
+The first argument passed to db.any() is the exact query we'd run in SQL to do the same thing.  So it's always a good idea to first write your query in Postico or some other Postgress tool to make sure it gets you the result you want.
+
+db.any('SELECT book_id, name, isbn, author, is_published, rating FROM books')
+.then((books) => {
+  console.log(books)
+})
+
+This prints all the books to the console.  So now we can put it in a format to display in our HTML:
+
+app.get('/', (req, res) => {
+  db.any('SELECT book_id, name, isbn, author, is_published, rating FROM books')
+  .then((books) => {
+    res.render('index', {books: books})
+  }
+})
+
+So we need an HTML page to display it:
+
+<html>
+<head></head>
+<body>
+  {{#books}}
+    {{name}}
+    {{ISBN}}
+    {{author}}
+
+  {{/books}}
+
+</body>
+</html>
+
+So we can go to localhost:3000 and see all our books displayed on the page. From there, the display is up to you. You can put the display in a <ul> with each book as an <li>. This data is coming directly from the database.
+
+How do we add a book?
+
+app.post('/add-book', (req, res) => {
+  const name = req.body.name
+  const isbn = req.body.isbn
+  const author = req.body.author
+  const isPublished = req.body.isPublished
+  const rating = parseInt(req.body.rating)
+
+//now we want to add it to our database, and we don't want to return anything, so we want db.none
+  db.none(???)
+
+})
+
+We want to check our SQL query in Postico/other tool before putting it in our code. Once it works, let's copy it over. We'll also need to change our hard-coded data to instead take the information we're getting from the user.
+
+app.post('/add-book', (req, res) => {
+  const name = req.body.name
+  const isbn = req.body.isbn
+  const author = req.body.author
+  const isPublished = req.body.isPublished
+  const rating = parseInt(req.body.rating)
+
+//now we want to add it to our database, and we don't want to return anything, so we want db.none
+  db.none('INSERT INTO books(name, isbn, author, is_pubhlished,rating) VALUES($1, $2, $3, $4, $5), [name, isbn, author, isPublished, rating])
+})
+
+The dollar sign entries are placeholders that are then specified with the values you're providing in the array. Somewhat similar (though not exactly) to a template literal.
+
+app.post('/add-book', (req, res) => {
+  const name = req.body.name
+  const isbn = req.body.isbn
+  const author = req.body.author
+  const isPublished = req.body.isPublished
+  const rating = parseInt(req.body.rating)
+
+  db.none('INSERT INTO books(name, isbn, author, is_pubhlished,rating) VALUES($1, $2, $3, $4, $5),   [name, isbn, author, isPublished, rating])
+  .then(() => {
+    res.redirect('/')
+  })
+
+})
+
+Now, we should use Postman to check if this works. With the database we've added a third point of failure - we have the display, the server, and now the db (and the database's server too!).
+
+POST, local-host:3000/add-book
+
+Be sure to select x-www-form-urlendcoded values!!!
+
+The keys will be name, isbn, author, isPublished, and rating (be sure they . The values will be some book you're trying to add. The isPublished might be a bit tricky, we'll start with trying 1 for true.
+
+We can look in Postico to see if our entry added, and it's there. So we were able to add stuff to the database with Postman. But obviously we want to use a user interface instead of Postman.
+
+Question from Neil: if we were doing CRUD actions from a router page, how do we do that?  
+Per Azam: you can either make the db variable global or initialize it on each separate route.
+
+So let's make an add-book mustache page:
+
+<h1>Add Book</h1>
+<form method='POST' action='/add-book'>
+  <input type='text' placeholder='Enter name' name='name'>
+  <input type='text' placeholder='isbn' name='isbn'>
+  <input type='text' placeholder='author' name='author'>
+  <label>Is Published:</label>
+  <input type='checkbox' name='isPublished'>
+  <input type='text' placeholder='rating' name='rating'>
+  <button>Save</button>
+</form>
+
+And we need an app.get to see the page:
+
+app.get('/add-book', (req, res) =. {
+  res.render('/add-book')
+})
+
+Let's add a console.log in our post method to see what we're getting from the form. We can see the isPublished comes through as "on" if checked, and not at all if unchecked. How does this look in the database? It's coming through ok when the box is checked, but coming through as to the DB as NULL if unchecked.  
+
+app.post('/add-book', (req, res) => {
+  const name = req.body.name
+  const isbn = req.body.isbn
+  const author = req.body.author
+  const isPublished = req.body.isPublished == "on" ? true || false
+  const rating = parseInt(req.body.rating)
+
+  db.none('INSERT INTO books(name, isbn, author, is_pubhlished,rating) VALUES($1, $2, $3, $4, $5),   [name, isbn, author, isPublished, rating])
+  .then(() => {
+    res.redirect('/')
+  })
+
+})
+
+With the ternary operator added to isPublished above, we now properly get false in the db when the box is not checked.
+
+What if we wanted to select all the books with a rating greater than 3? Remember to start with SQL. 
+
+Let's make this its own page:
+
+app.get('/books/rating:rating', (req,res) => {
+  const rating = parseInt(req.params.rating)
+
+  db.any('SELECT book_id, name, isbn, author, is_published, rating FROM books WHERE rating >=$1', [4])
+    .then(books)=> {
+      res.json(books)
+  })
+
+DELETE***
+
+app.post('delete-book', (req, res) => {
+  const bookId = req.body.bookId
+  db.none('DELETE FROM books WHERE book_id = $1;'. [bookId])
+    .then(() => {
+      res.redirect('/')
+    })
+})
+
+And as we did last week, you'd get the book ID from the user by having it "displayed" as a hidden input field that's tied to some kind of "delete book" button.
+
+Running through creating a new DB again to show how you can set up columns in Postico without using SQL commands.  One possible data type is timestamp; its default type should be "expression" (in the dropdown) and current_timestamp (in the blank field right after the dropdown). This should let the database automatically add the date created down to the second.
+
+Question from Mike: how would we store images; what would the data type be?
+Per Azam - for now, just store URLs to images. To store actual image data would be binary, but that's above what we're doing for now.
+
+For now, we've only had one table per DB. This is not the real world!. At a minimum, a bank would likely have an accounts table and a users table. It's not uncommon to see 500-odd tables. Tomorrow we'll see why and how you would join multiple tables.
+
+***ASSIGNMENT***
+You can start with the activities if you want.  You can adjust the movie or trips app from last week to do this assigment if you want, or you can start new.  Basic mode: view all, create new. Hard mode - update, delete. Harder mode - let user create account, add ability to login, associate user with post, let user see their blog posts only.
+
+Remember to move slowly because there are so many points of failure - SQL query, Node code, display/Mustache code. Check early/check often.
