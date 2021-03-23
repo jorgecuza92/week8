@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="indexstyles.css">
   <title>Blog</title>
 </head>
 
@@ -18,10 +19,13 @@
       <li>{{date_created}}</li>
       <li>{{date_updated}}</li>
       <li>{{is_published}}</li>
-  
+    <form method="POST" action="/delete-post">
+      <input type="hidden" value={{post_id}} name="post_id">
       <button>Delete Post</button>
-      <button>Update Post</button>
+    </form>
     {{/blogs2}}
+    <a href="./my-posts"><button>My Posts</button></a>
+      <button>Update Post</button>
     
 
 

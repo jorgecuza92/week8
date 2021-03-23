@@ -1,0 +1,26 @@
+
+<html>
+<head></head>
+
+<body>
+
+    <ul>
+    {{#books}}
+        <li>
+            {{name}}
+            {{isbn}}
+            {{author}}
+        </li>
+
+    {{/books}}
+
+    <!--    localhost:3000/update-post/23    -->
+    <a href="/update-post/{{post_id}}">
+        <button>Update</button>
+    </a>
+
+    </ul>
+
+
+</body>
+</html>
