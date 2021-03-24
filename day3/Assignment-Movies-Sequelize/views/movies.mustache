@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Movies</title>
+</head>
+<body>
+  <h1>My Added Movies</h1>
+  <a href="/add-movie"><button>Add Movies</button></a>
+  <a href="/top-movies"><button>My Highly Rated Movies</button></a>
+
+  <ul>
+    {{#movies}}
+      <li>{{title}}</li>
+      <li>{{director}}</li>
+      <li>{{rating}}</li>
+      <li><img src="{{poster_url}}" alt="moviePoster"></li>
+      <form action="/delete-movie" method="POST">
+        <input type="hidden" value={{id}} name="movieId">
+        <button>Delete</button>
+      </form>
+
+      
+      <a href="/update-movie/{{id}}"><button>Update</button></a> 
+
+
+
+
+
+
+
+    {{/movies}}
+
+    
+
+  </ul>
+ 
+  
+</body>
+</html>

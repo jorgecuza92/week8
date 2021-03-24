@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Update Movie</title>
+</head>
+<body>
+  {{#movie}}
+  <h1>Update a Movie</h1>
+
+  <form method="POST" action="/update-movie/{{id}}">
+    <input type="text" placeholder="title" name="title" id="titleTextBox" value='{{title}}' required/>
+    <input type="text" placeholder="director" name="director" id="directorTextBox" value='{{director}}' required/>
+    <input type="text" placeholder="rating (1-10)" name="rating" id="ratingTextBox" value='{{rating}}' required/>
+    <input type="text" placeholder="poster URL" name="poster_url" id="posterTextBox" value='{{poster_url}}' required/>
+    <label>Is it Oscar worthy?</label><input type="checkbox" name="isPublished" id="isPublished" />
+    <button>Update Movie</button>
+  </form>
+
+    <a href="/movies"><button>My Movies</button></a>
+ <ul>
+   <li></li>
+   <img src='{{poster_url}}' alt="moviePoster">
+ </ul>
+  
+  {{/movie}}
+</body>
+</html>

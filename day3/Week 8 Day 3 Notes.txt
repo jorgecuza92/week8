@@ -1,0 +1,319 @@
+Week 8 Day 3 Notes
+
+Yesterday's assignment review:
+
+Since we have foreign keys now, if we just want to display, for example, all the books in one user's list, we don't even need a JOIN. We just need:
+
+SELECT name, isbn, author, rating FROM books WHERE user_id = 3
+
+If we want to display more user info, then we do need a join. Remember, anywhere that has potential name conflicts needs to be preceded with the table name, and you *can* always add it just to be safe.
+
+SELECT users.user_id, users.username, books.name, books.author, books.isbn, books.rating FROM users JOIN books ON users.user_id = books.user_id WHERE users.user_id = 3
+
+Also if you have longer table names, you can use an alias instead:  
+
+SELECT u.user_id, u.username, b.name, b.author, b.isbn, b.rating FROM users u JOIN books b ON u.user_id = b.user_id WHERE u.user_id = 3
+
+Here we are putting u as the alias for users and b as the alias for books. The aliases can be whatever you want but obviously they should be something that makes sense and that you will remember/people will understand when reading behind you.
+
+When you have large tables with lots of data, each JOIN command takes a lot of resources and can be slow. So you could also just do a query to get the user info and another to get all their books.
+
+***ORM - OBJECT RELATIONAL MAPPING***
+
+An ORM lets you stay within your programming language of choice; classes that you write map to tables in your database.  Each property in a class will map to a column in that table. You don't have to write SQL queries with this method.
+
+Let's say we have a table called movies:
+
+movies
+
+movie_id		name		rating		director		poster_url
+1		Princess Bride	5/5		Rob Reiner	some image url
+
+
+Once our class is set up we can do something like (psuedo-code here):
+let movie = new Movie()
+movie.name = 'Spiderman'
+movie.rating = 4
+movie.save()
+
+One of the most popular ORMs for JavaScript is Sequelize. We need to install this globally (once per machine only, like nodemon or surge).
+
+npm install -g sequelize-cli
+
+(You may have to do this as sudo npm install -g sequelize-cli).
+
+We also need sequelize pg:
+
+npm install sequelize pg --save
+
+Then make sure you are within your project folder and run:
+sequelize init
+
+
+Then go into your config.json folder and change the username listed under development to "postgres".
+Change "database" to the name of your database. Change "dialect" to "postgres".
+
+When you are using an ORM, do NOT use Postico to make any changes to your database; it will make it very confused.
+
+Then we want to create a model, so we run:
+
+sequelize model:create --name Movie --attributes 'name:string rating:integer director:string"
+
+ALWAYS NAME YOUR CLASS AS A SINGULAR
+
+If it worked, you should get a "new model" message and it should have created a movie.js file for you. You should also get a migration file. You need to run it in order to get the movies table in your database:
+
+sequelize db:migrate
+
+Now, we're ready to start building. We need to create our Movie class within our JS:
+
+const models = require('./models')
+
+app.post('/add-movie', (req, res) => {
+  const title = req.body.title
+  const rating = parseInt(req.body.rating)
+  const director = req.body.director
+
+  let movie = models.Movie.build({
+    name: title,			// values on left are column names, those on right from interface
+    rating: rating,
+    director: director
+  })
+  
+  movie.save()  // saves to the Movies table
+  res.send('Movie saved.')
+
+})
+
+Let's check this out in Postman - it's a post to localhost:3000/add-movie.  Body is form-encoded, with title, rating, and director as keys.  We get a "movie saved" and if we look in Postico, the data is there.  
+
+So you can see this is less code on our end, and the SQL query appears in the console.
+
+The .save() function also returns a promise, so we can do things with that:
+app.post('/add-movie', (req, res) => {
+  const title = req.body.title
+  const rating = parseInt(req.body.rating)
+  const director = req.body.director
+
+  let movie = models.Movie.build({
+    name: title,			
+    rating: rating,
+    director: director
+  })
+  
+  movie.save().then((savedMovie) => {
+    console.log(savedMovie)
+    res.json({message: 'Movie is saved!'})
+  })  
+
+})
+
+(Within your models folder, DON'T delete the index.js file that's in there; Sequelize uses it to function properly.)
+
+What about displaying all the movies?
+
+app.get('/movies', (req, res) => {
+  models.Movie.findAll({})
+  .then(movies => {
+    res.json(movies)
+  })
+})
+
+Or showing movie details for a single movie?
+
+app.get('/movies/:movieId', (req, res) => {
+  const movieId = req.params.movieId
+
+  models.Movie.findByPk(movieId)
+  .then((movie) => {
+    res.json(movie)
+  })
+})
+
+We can try this out in Postman and see that it is working.
+
+Now, how do we display this on the UI? This may be a bit different.  In views, let's create a movies.mustache to display all the movies.
+
+In app.js:
+
+app.get('/movies', (req, res) => {
+  models.Movie.findAll({})
+  .then(movies => {
+    res.render('movies', {movies: movies})
+  })
+})
+
+In movies.mustache:
+
+<body>
+{{#movies}}
+  {{name}}
+{{/movies}}
+</body>
+
+
+
+Let's make a movie-detail.mustache page.  
+
+In app.js:
+
+app.get('/movies/:movieId', (req, res) => {
+  const movieId = req.params.movieId
+
+  models.Movie.findByPk(movieId)
+  .then((movie) => {
+    res.render('movie-detail', {movie: movie})
+  })
+})
+
+In movie-details.mustache:
+<body>
+{{#movie}}
+
+  {{name}}
+  {{rating}}
+  {{director}}
+
+{{/movie}}
+</body>
+
+Take note that here we used the SINGULAR movie, not movies plural - we're not looping through all the movies. You could also do:
+
+<body>
+  {{movie.name}}
+  {{movie.rating}}
+  {{movie.director}}
+</body>
+
+ACTIVITY 1 - Initialize Sequelize
+
+Initialize Sequelize for new project; can connect to existing db if you want. It will add the new table to that db. Create Models/Tables for Dish using this schema: (name:string description:string)
+You'll need to run sequelize db:migrate again after creating the model. You don't have to create a new migration.
+
+- - - -
+
+You may notice a Sequelize-Meta table in postico; don't mess with it. Like the index.js file mentioned about, Sequelize needs it in order to function and you don't want to accidentally break something.
+
+- - - - 
+
+***DISPLAY FILTERED DATA***
+
+Let's see how to display all movies with a rating greater than 4. We'll need to import an operator from Sequelize:
+const { Op } = require('sequelize')
+
+app.get('/top-movies', (req, res) => {
+  models.Movie.findAll({
+    where: {
+      rating: {
+        [Op.gt]: 4    // "operator, greater-than"
+      }
+    }
+  }).then(movies => {
+    res.json(movies)
+  })
+})
+
+What about deleting?
+
+app.post('/delete-movie', (req, res) => {
+  const movieId = req.body.movieId
+  models.Movie.destroy ({
+    where: {
+      id: movieId
+    }
+  }).then(deletedMovie => {
+    res.redirect('/movies')
+  })
+})
+
+This returns the deleted movie to you so you can say something like "LOTR has been deleted!" if you want.
+
+Let's check this in postman - localhost:3000/delete-movie
+form-url encoded data, movieId as key
+
+We can see our chosen movie has been deleted.
+
+***UPDATING MOVIE***
+app.post('/update-movie', (req, res) => {
+  const movieId = req.body.movieId
+  const title = req.body.title
+  const rating = req.body.rating
+  const director = req.body.director
+ 
+  models.Movie.update({
+    name: title,
+    director: director,
+    rating: rating
+  }, {
+    where: {
+      id: movieId
+    }
+  }).then(updatedMovie => {
+    res.redirect('/movies')
+  })
+})
+
+Again, postico - localhost:3000/update-movie ... our movies successfully updates.
+
+Tomorrow we will see how to get data out of multiple tables in Sequelize - reviews for movies, etc.
+
+Question from Clarence - how would you delete a table from within JS, since we're not supposed to edit our DB from Postico when we're also using an ORM like Sequelize? 
+
+Per Azam - let's add a new column to our table and then delete it. We need to create a new migration file.  
+
+In our terminal: sequelize migration:create --name 'add-genre-column-to-movies'  
+
+The bit in quotes is the migration name.
+
+Once we've run that command, let's open the migration file it created. We can see an "up" function and a "down" function. The "up" function is executed when you run sequelize db:migrate.  The down function gets executed when you want to undo a migration.  
+
+Within the function:
+
+up: async(queryInterface, Sequelize) => {
+  return queryInterface.addColumn('Movies', 'genre', {
+    type: Sequelize.STRING
+  })
+},
+
+So if this is our up function, what should our down function look like? It should be the opposite, yes?
+
+down: async(queryInterface, Sequelize) => {
+  return queryInterface.removeColumn('Movies', 'genre')
+},
+
+So we can run sequelize db:migrate and see the genre column appear. You can then either undo (only for whatever the last migration was):
+sequelize db:migrate:undo
+
+Or set up a new migration that removes the column (if you've done other migrations since then).  There may also be a way to do multiple undos. In sequelize db: migrate --help, there are commands 
+--to and --from that will run(or undo) migrations to a certain migration.
+
+To change a name, you want to create a migration that adds the corrected name and removes the incorrect one.
+
+**WATCH OUT ** - When you add a column, you also need to go into the movie.js file and add the property yourself. Other ORMs will do this for you, but Sequelize does not.  (Also don't forget to update your add-movie function in app.js!)
+
+ACTIVITY 2 - SEQUELIZE MIGRATION
+Add a new column imageURL using a migration; implement the up and down functions of the migration. Run sequelize db:migrate to run it, then check and see that your column was added.
+
+
+**DEBUGGING SERVERS**
+Stop the server from running. 
+Go to that your project folder from within the terminal
+Then run:
+
+node --inspect-brk app.js  (where app.js is the name of your main app file)
+This starts a listener
+
+Then in a browser, go to chrome://inspect
+
+Then open DevTools and press command-O to get a list of all project files, and select app.js. You can then select breakpoints for the debugger. Then any time you go to this URL, in your browser, in postman, wherever, these breakpoints in the code will be hit. This is helpful when using console.log is insufficient to solve your server issue. Azam's Udemy course also covers debugging (section 12).  He also has some similar videos on YouTube:
+https://www.youtube.com/results?search_query=azam+sharp+debugging+node
+
+
+ASSIGNMENT - SEQUELIZE APP
+You can use a previous movies/trips/blog app that you have already been working on. You should create a new database for this one though, since your existing database already has tables created for it and won't play nicely with Sequelize.
+- create/delete/update/view
+- filter based on categories
+- create a migration to add a column
+
+
+

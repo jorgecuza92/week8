@@ -1,0 +1,250 @@
+Week 8 Day 2 Notes
+
+Presentations this Friday - Summer, Neil, Wesley
+
+So how do we add a registration page to our site that put user info in our database?
+
+<html>
+<head></head>
+<body>
+<h1>Register</h1>
+<form method="POST" action"/register">
+<input type="text" name="username" placeholder="username">
+<input type="password" name="password" placeholder="password">
+<button>Login</button>
+</form>
+</body>
+</html>
+
+
+app.get('/register', (req, res) => {
+  res.render('register')
+})
+
+How do we post?
+
+app.post('/register', (req, res) => {
+  const username = req.body.username;
+  const password = req.body.password;
+
+  db.none('INSERT INTO users(username, password) VALUES($1, $2)',[username, password])
+  .then(
+     something something
+  )
+
+
+Now, we need to add a users table in Postico to our booksdb from yesterday. If you ignore Postgres naming convention and use names with capital letters for table names or column names, you have to wrap them in quotes to get them to work. So it's easier just to use lowercase.
+
+CREATE TABLE users(
+	user_id SERIAL PRIMARY KEY,
+	username VARCHAR(20) NOT NULL,
+	password VARCHAR(20) NOT NULL,
+	date_created timestamp DEFAULT current_timestamp
+)
+
+Once we hit Execute Selection, we can see our table. We can even add a column, date_updated from the structure view if we want.
+
+So now in our HTML we can add a user, and it works...BUT you can see their password! That's not good. That is ripe for hackers, and because people tend to use the same password everywhere, that could be their bank password or their TurboTax or whatever. So it's on site creators not store clear text passwords. 
+
+There are several packages available for this - we are going to use bcrypt js.
+
+npm install bcryptjs
+
+This will encrypt our passwords. What is encryption?  We will pass in a string and it will give back a long, seemingly-random string...but if we sent cat again, we'd get the SAME long, seemingly-random string.  A "dictionary attack" is a brute-force method where tons of random words are sent at the encryptor until it spits out a string that matches what they are seeing...then they know that is your password.  So...that's why it's a bad idea for your password to be "password", or "123", or really any other short/single word password. Using longer, stronger passwords is best - a short sentence with its punctuation is great! There are also apps like LastPass or KeyPass that will generate difficult-to-remember passwords that you can store at their site (behind a single STRONG password).
+
+So we need to initialize bcrypt 
+var bcrypt = require('bcryptjs')
+
+and then put it to use with .genSalt().  The first argument of genSalt() is the number of rounds of encryption it goes through before generating a salt (bit to make the password even more unique before generating the hash (the seemingly-random bit that will be actually stored.
+
+app.post('/register', (req, res) => {
+  const username = req.body.username;
+  const password = req.body.password;
+
+  bcrypt.genSalt(10, function(error, salt) {
+    bcrypt.hash(password, salt, function(error, hash) {
+      if(!error) {
+        db.none('INSERT INTO users(username, password) VALUES($1, $2)',[username, password])
+          .then() => {
+            res.send('User Registered')
+	  })
+      }
+   })
+})
+
+Now, the hash is too long to store! We need to make our password field longer in the Structure table in Postico - change that to character varying(60) or more.
+
+
+Question from Zachary Murphy - for yesterday's assignment, when updating a post, the update timestamp AND the creation timestamp also changes (which we don't want). Azam tried to update his user and got the same thing. Maybe there is another version of the timestamp we should be using.
+
+Ok, now that we have our username and password, we need to build our authentication.
+
+app.post('/login', (req, res) =. {
+  const username = req.body.username;
+  const password = req.body.password;
+
+  db.one('SELECT user_id, username, password FROM users WHERE username = $1, [username])
+  .then((user) => {
+    if(user) {
+      //first password is from textbox, second is from DB
+      bcrypt.compare(password, user.password, function(error, result) {
+        if(result) {
+          res.send('User is authenticated!)
+        } else {
+          res.send('Invalid password.')
+        }
+      })
+    }
+  })         
+
+Let's try this in Postman at localhost:3000/login. Make sure your data type is form-urlencoded and set your keys and headers. Wait, if we have the right password but wrong username, it hangs and doesn't show anything. We'll need to fix that.
+
+app.post('/login', (req, res) =. {
+  const username = req.body.username;
+  const password = req.body.password;
+
+  db.one('SELECT user_id, username, password FROM users WHERE username = $1, [username])
+  .then((user) => {
+    if(user) {
+      //"password" is from textbox, "user.password" is from DB
+      bcrypt.compare(password, user.password, function(error, result) {
+        if(result) {
+          res.send('User is authenticated!)
+        } else {
+          res.send('Invalid password.')
+        }
+      })
+    }).catch(error) => {
+    console.log(error)         
+    res.send('User not found.')
+})
+
+Now, what do you want to do once they're logged in? It's up to you. After that res.send('User is authenticated!), you can do a res.render or a res.redirect, depending where you want them to go. But what you also want to do is create a session and probably store the user_id. Remember to install express-session.
+
+app.post('/login', (req, res) =. {
+  const username = req.body.username;
+  const password = req.body.password;
+
+  db.one('SELECT user_id, username, password FROM users WHERE username = $1, [username])
+  .then((user) => {
+    if(user) {
+      //"password" is from textbox, "user.password" is from DB
+      bcrypt.compare(password, user.password, function(error, result) {
+        if(result) {
+	  if(req.session) {
+            req.session.userId = user.user_id
+	    req.session.username = user.username
+          }
+
+          res.send('User is authenticated!)
+
+        } else {
+          res.send('Invalid password.')
+        }
+      })
+    }).catch(error) => {
+    console.log(error)         
+    res.send('User not found.')
+})
+
+***TABLE LINKAGE***
+
+So now we have a users table and a books table, but there's no linkage between them. You can't say "oh, Lord of the Rings was on John's reading list", or "Intro to JS is on Mary's reading list".  How do we do that?
+
+We need a one-to-many relationship: a user would have many books on their list.  One book or many books can belong to a user.
+
+So we need to add a user_id column to the books table. The column name doesn't have to be the same as the primary key name in the users table, but it is called a "foreign key (FK)" column. Values in this column MUST belong to a value in the primary key column in the users table. If we tried to add a user_id 7 right now, we don't have 7 users, so this will error out. If you left off the FK part, it'd let you enter any integer you want, but this causes more errors than it seems to solve. "Garbage In, Garbage Out"
+
+In the Structure section of Postico for the books table, we need to add our column, and in our Constraints column, we need to set it as Foreign Key, with Foreign Key Name as user_id, referenced table as users, and referenced column as user_id.  The name you give the foreign key column does NOT have to be the same as it is in the original table as long as it is referenced properly. Some companies have all their primary keys be one word like customerid, then all foreign keys have underscores, customer_id.
+
+Now, all our existing book entries have null for the user_id column. We can go back and assign users, but you see we are restricted to only assigning to user IDs existing in the users table.
+
+Question from Zachary Murphy - if the user is deleted, what happens to the books?  It will stop you deleting the user as long as there are references to the user in another table. We have options in that Constraints dropdown related to this - cascade delete will delete all the books associated with the user, set NULL will put the all user_id fields for books that user had to Null, etc.
+
+
+Many-to-many: we won't go very deep into this.
+
+Let's say we had a recipes table and an ingredients table:
+
+RECIPES
+recipe_id	name
+1		Cake
+2		Pudding
+3		Cookies
+
+INGREDIENTS
+ingredient_id		name		recipe_id
+1			sugar		1
+2			flour		
+3			butter
+4			chocolate
+5 			strawberries
+
+The one-to-many wouldn't work because obviously most recipes would need more than one of these ingredients. So we need something called a PIVOT TABLE.
+
+RECIPE INGREDIENTS
+recipe_ingredients_id	recipe_id	ingredient_id
+1			1		1 (cake needs sugar)
+2			1		3 (cake needs flour)
+3			2		1 (pudding needs sugar)
+4			2		3 (pudding needs butter)
+5			1		5 (cake needs strawberries)
+
+
+Okay...so how would we display all the books associated with a particular user_id?
+
+SELECT book_id, name, isbn FROM books WHERE user_id = 3
+
+This is why we put the user_id in the session.
+
+app.get('/my-books', (req, res) => {
+  const userId = req.session.userId
+
+  db.any('SELECT book_id, name, isbn, author FROM books WHERE user_id = $1', [userId])
+  .then((books) => {
+    res.json(books)  // or render an actual page here
+  }
+})
+
+And within our login route:
+
+if(req.session) {
+  req.session.userId = user.user_id
+  req.session.username = user.username
+  res.redirect('/my-books')
+}
+
+Now we need a GET route for login:
+app.get('/login', (req, res) => {
+  res.render('/login')
+}
+
+
+ONE-TO-ONE RELATIONSHIP
+If each person can have only one address...you don't need two tables, you could just add street, city, state, etc columns for each customer. But what if we suddenly added the ability for one customer to have multiple addresses? Then you'd want a different table and you'd want to link the addresses back to the customers. Be sure to set your customer_id column in your addresses table to be a foreign key, so that it restricts entries to the customers in the customers table.
+
+
+JOINING TABLES
+What if we wanted to display multiple columns from multiple tables? Say we want to display the user_id and username from the users table AND all the info for their books?  We need to link them using their primary keys and foreign keys.
+
+SELECT users.user_id, username, names, isbn, author FROM users
+JOIN booksON users.user_id = books.user_id
+
+Why users.user_id after the SELECT? Because both tables have a user_id column. So we need to be explicit about which we want.
+
+This will return you a set displaying each book with users listed multiple times, once for each book they have on their list.  From there it's up to us to display the result nicely.
+
+app.get('/dashboard', (req, res) => {
+ db.any('SELECT users.user_id, username, names, isbn, author FROM users
+JOIN booksON users.user_id = books.user_id').then(result => {
+  console.log(result)
+  })
+
+res.send("OK")  
+
+})
+
+Azam will append code to make the display nicer to the bottom of the class code. It will need to be tweaked a bit to apply it to your assignment, and you don't need to use it if you don't want to. It's just there to help you out if you want it.
+
+***ASSIGNMENTS***
+Take the app you've been working on, and add user login and registration to it. Make sure passwords are encrypted. Let users create posts and comment on posts.

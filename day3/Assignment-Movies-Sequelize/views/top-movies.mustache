@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Top Movies</title>
+</head>
+<body>
+  <h1>Movies with a rating of 9 or higher!</h1>
+  <a href="/add-movie"><button>Add Movie</button></a>
+  <a href="/movies"><button>My Movies</button></a>
+  {{#movies}}
+  <ul>
+    <li>
+      {{title}}
+      {{rating}}
+      {{director}}
+      <img src="{{poster_url}}" alt="moviePoster">
+     
+    </li>
+  </ul>
+  {{/movies}}
+
+</body>
+</html>
